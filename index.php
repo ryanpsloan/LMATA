@@ -65,17 +65,21 @@ session_start();
             <div><?php if(isset($_SESSION['output'])){echo $_SESSION['output']."<br>"; $_SESSION['output'] = "";}
                 if(isset($_SESSION['fileName'])){ echo "<a href='download.php'>Download</a> | ";
                     echo "<a href='clear.php'>Clear Files</a><br>"; }?></div>
-            <div><?php if(isset($_SESSION['exceptionFile'])){ echo "<a href='exceptionDownload.php'>Download Exceptions</a>";} ?></div>
+
+            <div><?php
+              if(isset($_SESSION['count'])){ echo "<br>Employee Count: " . ($_SESSION['count'] - 1) ."<br>";}
+            ?></div>
+            <div class="col-xs-offset-4 col-xs-4"><?php
+            if(isset($_SESSION['totals'])){
+                echo "<br><p> TOTALS </p><div><hr></div>";
+                foreach($_SESSION['totals'] as $key => $line):
+                    if($line !== ''){
+                       echo "<p>". $key . ": " . $line . "</p>";
+                    }
+                endforeach;
+            }
+            ?></div>
         </div>
-        <?php if(isset($_SESSION['count'])){
-            echo "<div class='col-xs-4'></div><div class='col-xs-4' style='border: 1px solid black; margin-top: 5px; padding: 15px;'>
-                <p>" . $_SESSION['originalFileName'] . "</p>
-                <hr>
-                <p>Employee Count: " . $_SESSION['count'] . "</p>
-                <p>Total Regular: " . number_format($_SESSION['hours'],2) . "</p>
-                <p>Total Overtime: " . number_format($_SESSION['overtime'],2). "</p>
-            </div><div class='col-xs-4'></div>";
-        } ?>
     </div>
 </main>
 </body>

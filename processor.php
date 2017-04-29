@@ -53,18 +53,18 @@ if(isset($_FILES)) { //Check to see if a file is uploaded
             throw new RuntimeException('Exceeded Filesize Limit.');
         }
         //define accepted extensions and types
-        $goodExts = array("xml");
-        $goodTypes = array("text/xml");
+        $goodExts = array("csv");
+        $goodTypes = array("text/csv","application/vnd.ms-excel","application/csv");
         //test to ensure that uploaded file extension and type are acceptable - if not throw exception
         if (in_array($extension, $goodExts) === false || in_array($type, $goodTypes) === false) {
-            fwrite($log, "This page only accepts .xml files, please upload the correct format." . PHP_EOL);
-            throw new Exception("This page only accepts .xml files, please upload the correct format.");
+            fwrite($log, "This page only accepts .csv files, please upload the correct format." . PHP_EOL);
+            throw new Exception("This page only accepts .csv files, please upload the correct format.");
         }
         //move the file from temp location to the server - if fail throw exception
-        $directory = "/var/www/html/Abarim/Files";
+        $directory = "/var/www/html/LMATA/Files";
         if (move_uploaded_file($tmp_name, "$directory/$name")) {
             fwrite($log, "File Successfully Uploaded." . PHP_EOL);
-            //echo "<p>File Successfully Uploaded.</p>";
+
         } else {
             fwrite($log, "Unable to Move File to /Files." . PHP_EOL);
             throw new RuntimeException("Unable to Move File to /Files.");
@@ -74,7 +74,7 @@ if(isset($_FILES)) { //Check to see if a file is uploaded
         $day = $today->format('d');
         $year = $today->format('y');
         $time = $today->format('H-i-s');
-        $newName = "$directory/Data-$month-$day-$year-$time.$extension";
+        $newName = "$directory/LMATA-$month-$day-$year-$time.$extension";
         if ((rename("$directory/$name", $newName))) {
             fwrite($log, "File Renamed to: $newName" . PHP_EOL);
             //echo "<p>File Renamed to: $newName </p>";
@@ -82,113 +82,134 @@ if(isset($_FILES)) { //Check to see if a file is uploaded
             fwrite($log, "Unable to Rename File: $name" . PHP_EOL);
             throw new RuntimeException("Unable to Rename File: $name");
         }
-        //open the stream for file reading
-        $fileXML = file_get_contents($newName);
-        //var_dump($fileXML);
-        $p = xml_parser_create();
-        if(!xml_parse_into_struct($p, $fileXML, $values, $index)){
-            throw new Exception('error: '.xml_error_string(xml_get_error_code($p)).' at line '.xml_get_current_line_number($p));
+        $handle = fopen($newName, "r");
+
+        $headers = fgets($handle);
+        //var_dump($headers);
+        $fileData = array();
+        //read the data in line by line
+        while (!feof($handle)) {
+            $line_of_data = fgets($handle); //gets data from file one line at a time
+            $line_of_data = trim($line_of_data); //trims the data
+            $fileData[] = explode(",", $line_of_data); //breaks the line up into pieces that the array can store
         }
-        xml_parser_free($p);
-        //var_dump($values);
-        $hours = $overtime = 0;
-        $array = array();
-        $i = 0;
-        //if(strpos($values[0]['attributes']['TEXTBOX119'], "SF") === false) {
-        foreach ($values as $key => $val) {
-            if ($val['tag'] === 'TBLWORKERACTIVITY_GROUP4' && $val['level'] === 8 && $val['type'] === 'open') {
-                $time = explode(":", $val['attributes']['TEXTBOX17']);
-                $hrs = $time[0];
-                $min = $time[1] * (1/60);
-                //var_dump($time);
-                $array[$i]['hours'] = number_format($hrs + $min,2);
-                //echo($array[$i]['hours']) .  "<br>";
-            }
-            if ($val['tag'] === 'WORKERGROUP' && $val['level'] === 12 && $val['type'] === 'open') {
-                $id = explode(":", $val['attributes']['TEXTBOX21']);
-                //var_dump($id);
-                $array[$i]['empid'] = trim($id[1]);
-            }
-            if ($val['tag'] === 'TBLHEADINGGROUPING' && $val['level'] === 14 && $val['type'] === 'open') {
-                $temp = explode(":", $val['attributes']['TEXTBOX10']);
-                $name = explode(" ", trim($temp[1]));
-                //var_dump($name);
-                if ($name[1] !== "Jr.," && $name[1] !== "Jr," && $name[1] !== "-") {
-                    $array[$i]['name'] = trim($name[1]) . " " . str_replace(",", "", trim($name[0]));
-                } else if ($name[1] === "-") {
-                    $array[$i]['name'] = str_replace(",", "", trim($name[3])) . " " . trim($name[0]) . "-" . str_replace(",", "", trim($name[2]));
-                } else {
-                    $array[$i]['name'] = str_replace(",", "", trim($name[2])) . " " . str_replace(",", "", trim($name[0]));
-                }
-                $i++;
+
+        //close file reading stream
+        fclose($handle);
+
+        //var_dump($fileData);
+
+        $data = $fileData;
+        //var_dump($data);
+
+        foreach($data as $key => $line){
+            if(count($line) < 17){
+                unset($data[$key]);
             }
         }
-        /*}else{
-            foreach ($values as $key => $val) {
-                if ($val['tag'] === 'TBLWORKERACTIVITY_GROUP5' && $val['level'] === 10 && $val['type'] === 'open') {
-                    $time = explode(":", $val['attributes']['TEXTBOX9']);
-                    $hrs = $time[0];
-                    $min = $time[1] * (1/60);
-                    //var_dump($time);
-                    $array[$i]['hours'] = number_format($hrs + $min,2);
-                    //echo($array[$i]['hours']) .  "<br>";
-                }
-                if ($val['tag'] === 'WORKERGROUP' && $val['level'] === 14 && $val['type'] === 'open') {
-                    $id = explode(":", $val['attributes']['TEXTBOX33']);
-                    //var_dump($id);
-                    $array[$i]['empid'] = trim($id[1]);
-                }
-                if ($val['tag'] === 'TBLHEADINGGROUPING' && $val['level'] === 16 && $val['type'] === 'open') {
-                    $temp = explode(":", $val['attributes']['TEXTBOX12']);
-                    $name = explode(" ", trim($temp[1]));
-                    //var_dump($name);
-                    if ($name[1] !== "Jr.," && $name[1] !== "Jr," && $name[1] !== "-") {
-                        $array[$i]['name'] = trim($name[1]) . " " . str_replace(",", "", trim($name[0]));
-                    } else if ($name[1] === "-") {
-                        $array[$i]['name'] = str_replace(",", "", trim($name[3])) . " " . trim($name[0]) . "-" . str_replace(",", "", trim($name[2]));
-                    } else {
-                        $array[$i]['name'] = str_replace(",", "", trim($name[2])) . " " . str_replace(",", "", trim($name[0]));
-                    }
-                    $i++;
-                }
-            }
-        }*/
-        //var_dump($array);
-        $newArr = array();
-        foreach($array as $arr){
-            $newArr[$arr['name']]['hours'] = 0;
-        }
-        //var_dump($newArr);
-        foreach($array as $arr){
-            $newArr[$arr['name']]['empid'] = $arr['empid'];
-            $newArr[$arr['name']]['hours'] += (float) $arr['hours'];
-        }
-        foreach($newArr as $key => $nArray){
-            if ($nArray['hours'] > 40) {
-                $newArr[$key]['overtime'] = $nArray['hours'] - 40;
-                $newArr[$key]['hours'] = 40;
-                $overtime += $nArray['hours'] - 40;
-                $hours += 40;
-            } else {
-                $hours += $nArray['hours'];
-            }
-            //echo $nArray['hours'] ."<br>";
-        }
-        //var_dump($newArr);
-        $count = count($newArr);
-        $output = $exceptions = array();
-        foreach($newArr as $key => $nArray){
-            //var_dump((int) $nArray['empid']);
-            if((int)$nArray['empid'] > 0) {
-                $output[] = array($nArray['empid'], /*$key*/ "", "", "", "", "E", "01", "", (string) $nArray['hours'], "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "");
-                if (array_key_exists('overtime', $nArray)) {
-                    $output[] = array($nArray['empid'], /*$key*/ "", "", "", "", "E", "02", "", $nArray['overtime'], "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "");
-                }
+
+        $lineArray = array();
+        foreach($data as $key => $line){
+            if(substr($line[0], 0, 3) === "Job"){
+                unset($data[$key]);
             }else{
-                $exceptions[] = array($key, "Employee Id is not an Integer or is Blank", "ID Value: " . $nArray['empid'], "Total Hours: " . (string) $nArray['hours'],  array_key_exists('overtime', $nArray)  ? "Overtime: " . (string) $nArray['overtime'] : "");
+
+                $temp = explode(":", $line[0]);
+
+                if(preg_replace("/\"/", "", $temp[0]) === "Name") {
+                    $nameStr = preg_replace("/\"/", "", trim($line[1])) . " " . trim($temp[1]);
+                    $name = ucwords(strtolower($nameStr));
+                    $tempId = explode(":", $line[2]);
+                    $lineArray[$name]['empId'] = trim($tempId[1]);
+
+                }else if(substr(trim($line[0]), 0, 5) === "Grand"){
+                    $lineArray['Grand Totals'] = array("REG" => $line[1], "OT" => $line[2], "HOL" => $line[3], "PTO" => $line[4], "Other" => $line[5], "S1" => $line[6], "OC" => $line[7], "VAC" => $line[8], "PM" => $line[9], "SE" => $line[10], "BI" => $line[11], "SICK" => $line[12], "GA" => $line[13], "BP" => $line[14], "Total Hours" => $line[15], "Total Amount" => $line[16]);
+
+                }else{
+                    $lastName = preg_replace("/\"/", "", $line[0]);
+                    $nameArr = explode(" ", preg_replace("/\"/", "", trim($line[1])));
+                    $firstName = $nameArr[0];
+                    $nameStr = $firstName . " " . $lastName;
+                    $name = ucwords(strtolower($nameStr));
+                    $lineArray[$name]['data'] = array("REG" => $line[2], "OT" => $line[3], "HOL" => $line[4], "PTO" => $line[5], "Other" => $line[6], "S1" => $line[7], "OC" => $line[8], "VAC" => $line[9], "PM" => $line[10], "SE" => $line[11], "BI" => $line[12], "SICK" => $line[13], "GA" => $line[14], "BP" => $line[15], "Total Hours" => $line[16], "Total Amount" => $line[17]);
+                }
             }
         }
-        $fileName = "EvoFiles/Abarim_Evo_File-" . $month . "-" . $day . "-" . $year . ".csv";
+
+        //var_dump("DATA", $data);
+        //var_dump("LINEARRAY", $lineArray);
+
+        $output = array();
+
+        foreach($lineArray as $key => $arr){
+            $code = array();
+            if(array_key_exists('data', $arr)){
+                $line = $arr['data'];
+                if ($line["REG"] !== '') {
+                    $code["REG"] = '01';
+                }
+                if ($line["OT"] !== '') {
+                    $code["OT"] = '02';
+                }
+                if ($line["HOL"] !== '') {
+                    $code["HOL"] = '05';
+                }
+                if ($line["PTO"] !== '') {
+                    $code["PTO"] = '04';
+                }
+                if ($line["Other"] !== '') {
+                    $code["Other"] = '08';
+                }
+                if ($line["S1"] !== '') {
+
+                }
+                if ($line["OC"] !== '') {
+
+                }
+                if ($line["VAC"] !== '') {
+                    $code["VAC"] = '03';
+                }
+                if ($line["PM"] !== '') {
+
+                }
+                if ($line["SE"] !== '') {
+
+                }
+                if ($line["BI"] !== '') {
+
+                }
+                if ($line["SICK"] !== '') {
+
+                }
+                if ($line["GA"] !== '') {
+
+                }
+                if ($line["BP"] !== '') {
+
+                }
+
+                $lineArray[$key]['code'] = $code;
+            }
+
+        }
+
+        //var_dump("LINEARRAY2", $lineArray);
+
+        $output = array();
+        foreach($lineArray as $key => $line){
+            if(array_key_exists('code', $line)) {
+                foreach ($line['code'] as $k => $code) {
+                    $output[] = array($line['empId'], $key, "", "", "", "E", $code, "", $line['data'][$k], "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "");
+                }
+            }
+        }
+
+        $month = $today->format("m");
+        $day = $today->format('d');
+        $year = $today->format('y');
+        $time = $today->format('H-i-s');
+
+        $fileName = "Files/LMATA_Evo_Import-" . $month . "-" . $day . "-" . $year . "-". $time. "csv";
         $handle = fopen($fileName, 'wb');
         //create a .txt from updated original fileData
         foreach($output as $line){
@@ -196,21 +217,11 @@ if(isset($_FILES)) { //Check to see if a file is uploaded
         }
         fclose($handle);
         $_SESSION['fileName'] = $fileName;
-        if(count($exceptions) > 0) {
-            $exFileName = "ExceptionFiles/Abarim_Exception_File-" . $month . "-" . $day . "-" . $year . ".csv";
-            $handle = fopen($exFileName, 'wb');
-            //create a .txt from updated original fileData
-            foreach ($exceptions as $line) {
-                fputcsv($handle, $line);
-            }
-            fclose($handle);
-            $_SESSION['exceptionFile'] = $exFileName;
-        }
         $_SESSION['output'] = "Files Successfully Created";
-        $_SESSION['count'] = $count;
-        $_SESSION['overtime'] = $overtime;
-        $_SESSION['hours'] = $hours;
-        header("Location: index.php");
+        $_SESSION['count'] = count($lineArray);
+        $_SESSION['totals'] = $lineArray['Grand Totals'];
+        $_SESSION['hours'] = $lineArray['Grand Totals']["Total Hours"];
+        //header("Location: index.php");
     } catch (Exception $e) {
         $_SESSION['output'] = $e->getMessage();
         header('Location: index.php');
