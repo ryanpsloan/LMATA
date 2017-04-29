@@ -50,7 +50,7 @@ session_start();
 
     <div class="container-fluid">
         <div class="row center">
-            <p>Upload .csv only</p>
+            <p>Upload .csv only - Did you save the upload to a .csv format before attempting the upload? </p>
             <form action="processor.php" method="POST" enctype="multipart/form-data">
                 <table id="fileUpload" class="border">
 

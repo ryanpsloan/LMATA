@@ -209,7 +209,7 @@ if(isset($_FILES)) { //Check to see if a file is uploaded
         $year = $today->format('y');
         $time = $today->format('H-i-s');
 
-        $fileName = "Files/LMATA_Evo_Import-" . $month . "-" . $day . "-" . $year . "-". $time. "csv";
+        $fileName = "Files/LMATA_Evo_Import-" . $month . "-" . $day . "-" . $year . "-". $time. ".csv";
         $handle = fopen($fileName, 'wb');
         //create a .txt from updated original fileData
         foreach($output as $line){
@@ -221,7 +221,7 @@ if(isset($_FILES)) { //Check to see if a file is uploaded
         $_SESSION['count'] = count($lineArray);
         $_SESSION['totals'] = $lineArray['Grand Totals'];
         $_SESSION['hours'] = $lineArray['Grand Totals']["Total Hours"];
-        //header("Location: index.php");
+        header("Location: index.php");
     } catch (Exception $e) {
         $_SESSION['output'] = $e->getMessage();
         header('Location: index.php');
