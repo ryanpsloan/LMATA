@@ -161,31 +161,31 @@ if(isset($_FILES)) { //Check to see if a file is uploaded
                     $code["Other"] = '08';
                 }
                 if ($line["S1"] !== '') {
-
+                    $code["S1"] = '';
                 }
                 if ($line["OC"] !== '') {
-
+                    $code["OC"] = '';
                 }
                 if ($line["VAC"] !== '') {
                     $code["VAC"] = '03';
                 }
                 if ($line["PM"] !== '') {
-
+                    $code["PM"] = '';
                 }
                 if ($line["SE"] !== '') {
-
+                    $code["SE"] = '';
                 }
                 if ($line["BI"] !== '') {
-
+                    $code["BI"] = '09';
                 }
                 if ($line["SICK"] !== '') {
-
+                    $code["SICK"] = '06';
                 }
                 if ($line["GA"] !== '') {
-
+                    $code["GA"] = '';
                 }
                 if ($line["BP"] !== '') {
-
+                    $code["BP"] = '';
                 }
 
                 $lineArray[$key]['code'] = $code;
